@@ -42,7 +42,7 @@ namespace MayonnaisePlusPlus
 								}
 								__result = true;
 							}
-							break;
+							return false;
 						case 174:
 						case 182:
 							__instance.heldObject.Value = new SObject(Vector2.Zero, 306, null, false, true, false, false) {
