@@ -1,6 +1,6 @@
 {
-  "Name": "Dinosaur Mayonnaise",
-  "Description": "Json Assets content for my SMAPI Mod.",
-  "Version": "1.0.0",
+  "Name": "Mayonnaise++",
+  "Description": "Json Assets content for the SMAPI Mod of the same name.",
+  "Version": "1.1.0",
   "Author": "Adam 'theStormWeaver' Chevalier"
 }
