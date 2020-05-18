@@ -34,7 +34,7 @@ namespace MayonnaisePlusPlus
 				return false;
 			if (__instance.bigCraftable && !probe && (object1 != null && __instance.heldObject.Value == null))
 				__instance.scale.X = 5f;
-			if (probe && __instance.MinutesUntilReady > 0)
+			if (probe && __instance.minutesUntilReady.Value > 0)
 				return false;
 			if (__instance.name.Equals("Mayonnaise Machine")) {
 					switch (object1.ParentSheetIndex) {
@@ -122,9 +122,9 @@ namespace MayonnaisePlusPlus
 						__instance.heldObject.Value = new SObject(object1.ParentSheetIndex, 1, false, -1, 0);
 						if (!probe) {
 							who.currentLocation.playSound("coin");
-							__instance.MinutesUntilReady = 9000 * object1.ParentSheetIndex == 107 ? 2 : 1;
+							__instance.minutesUntilReady.Value = 9000 * object1.parentSheetIndex == 107 ? 2 : 1;
 							if (who.professions.Contains(2))
-								__instance.MinutesUntilReady /= 2;
+								__instance.minutesUntilReady.Value /= 2;
 							if (object1.ParentSheetIndex == 180 || object1.ParentSheetIndex == 182 || object1.ParentSheetIndex == 305)
 								__instance.ParentSheetIndex += 2;
 							else
@@ -195,6 +195,7 @@ namespace MayonnaisePlusPlus
 			if (!flag2 || __instance.age.Value < __instance.ageWhenMature.Value) {
 				parentSheetIndex = -1;
 			} else {
+					__instance.daysSinceLastLay.Value = 0;
 				parentSheetIndex = __instance.defaultProduceIndex.Value;
 				if (parentSheetIndex == 107 && Loader.CONFIG.InfertileEggs) parentSheetIndex = Loader.DATA["Dino Egg"];
 				if (random.NextDouble() < __instance.happiness.Value / 150.0) {
@@ -203,7 +204,6 @@ namespace MayonnaisePlusPlus
 						parentSheetIndex = __instance.deluxeProduceIndex.Value;
 					} else if (__instance.type.Value.Equals("Rabbit") && random.NextDouble() < (__instance.friendshipTowardFarmer.Value + (double)num1) / 5000.0 + Game1.player.team.AverageDailyLuck(null) + Game1.player.team.AverageLuckLevel(null) * 0.02) {
 						parentSheetIndex = __instance.deluxeProduceIndex.Value;
-						__instance.daysSinceLastLay.Value = 0;
 					} else if (__instance.type.Value.Equals("Blue Chicken") && random.NextDouble() < (__instance.friendshipTowardFarmer.Value + (double)num1) / 5000.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.01) {
 						parentSheetIndex = Loader.DATA["Blue Chicken Egg"];
 					}
@@ -280,7 +280,7 @@ namespace MayonnaisePlusPlus
 		public static bool AddHatchedAnimal(ref AnimalHouse __instance, ref string name) {
 			if (__instance.getBuilding() is Coop) {
 				foreach (SObject obj in __instance.objects.Values) {
-					if (obj.bigCraftable.Value && obj.Name.Contains("Incubator") && (obj.heldObject.Value != null && obj.MinutesUntilReady <= 0) && !__instance.isFull()) {
+					if (obj.bigCraftable.Value && obj.Name.Contains("Incubator") && (obj.heldObject.Value != null && obj.minutesUntilReady.Value <= 0) && !__instance.isFull()) {
 						string type = "??";
 						if (obj.heldObject.Value == null) {
 							type = "White Chicken";

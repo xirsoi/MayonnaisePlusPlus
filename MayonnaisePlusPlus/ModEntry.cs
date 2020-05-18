@@ -1,5 +1,5 @@
 ﻿using System;
-using HarmonyLib;
+using Harmony;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using AnimalHouse = StardewValley.AnimalHouse;
@@ -28,7 +28,7 @@ namespace MayonnaisePlusPlus
 			if (_data != null) return;
 			_data = new Loader(Helper);
 
-			var harmony = new Harmony("Xirsoi.MayoMod");
+			var harmony = HarmonyInstance.Create("Xirsoi.MayoMod");
 
 			harmony.Patch(
 					original: AccessTools.Method(typeof(SObject), nameof(SObject.performObjectDropInAction)),
