@@ -40,7 +40,7 @@ namespace MayonnaisePlusPlus
 			);
 			harmony.Patch(
 				original: AccessTools.Method(typeof(AnimalHouse), nameof(AnimalHouse.addNewHatchedAnimal)),
-				prefix: new HarmonyMethod(typeof(ObjectOverrides), nameof(ObjectOverrides.AddHatchedAnimal))
+				prefix: new HarmonyMethod(typeof(ObjectOverrides), nameof(ObjectOverrides.AnimalHouseAddNewHatchedAnimal))
 			);
 
 			_jsonAssets = Helper.ModRegistry.GetApi<IJsonAssetApi>("spacechase0.JsonAssets");
