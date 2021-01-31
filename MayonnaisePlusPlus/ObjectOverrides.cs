@@ -9,7 +9,7 @@ using SObject = StardewValley.Object;
 
 namespace MayonnaisePlusPlus
 {
-	internal class ObjectOverrides
+	public class ObjectOverrides
 	{
 		public static int CalculateQualityLevel(Farmer who, int sourceQuality = 0, bool bonus = false) {
 			int quality = sourceQuality;
@@ -25,6 +25,7 @@ namespace MayonnaisePlusPlus
 		}
 
 		public static bool PerformObjectDropInAction(ref SObject __instance, ref Item dropInItem, ref bool probe, ref Farmer who, ref bool __result) {
+			ModEntry.MOD_MONITOR.Log("Entering PerformDropInAction...", StardewModdingAPI.LogLevel.Trace);
 			__result = false;
 			if (__instance.isTemporarilyInvisible || !(dropInItem is SObject))
 				return false;
@@ -126,9 +127,9 @@ namespace MayonnaisePlusPlus
 					__instance.heldObject.Value = new SObject(object1.ParentSheetIndex, 1, false, -1, 0);
 					if (!probe) {
 						who.currentLocation.playSound("coin");
-						__instance.minutesUntilReady.Value = 9000 * object1.ParentSheetIndex == 107 ? 2 : 1;
+						__instance.MinutesUntilReady = 9000 * object1.ParentSheetIndex == 107 ? 2 : 1;
 						if (who.professions.Contains(2))
-							__instance.minutesUntilReady.Value /= 2;
+							__instance.MinutesUntilReady /= 2;
 						if (object1.ParentSheetIndex == 180 || object1.ParentSheetIndex == 182 || object1.ParentSheetIndex == 305)
 							__instance.ParentSheetIndex += 2;
 						else
@@ -142,6 +143,7 @@ namespace MayonnaisePlusPlus
 		}
 
 		public static bool FarmAnimalDayUpdate(ref FarmAnimal __instance, GameLocation environtment) {
+			ModEntry.MOD_MONITOR.Log("Entering Day Update...", StardewModdingAPI.LogLevel.Trace);
 			if (__instance.daysOwned.Value < 0)
 				__instance.daysOwned.Value = __instance.age.Value;
 			__instance.StopAllActions();
@@ -284,7 +286,8 @@ namespace MayonnaisePlusPlus
 			return false;
 		}
 
-		public void AnimalHouseAddNewHatchedAnimal(ref AnimalHouse __instance, string name) {
+		public bool AnimalHouseAddNewHatchedAnimal(ref AnimalHouse __instance, string name) {
+			ModEntry.MOD_MONITOR.Log("Entering AddNewHatchedAnimal...", StardewModdingAPI.LogLevel.Trace);
 			bool flag = false;
 			foreach (SObject @object in __instance.objects.Values) {
 				if (@object.bigCraftable && @object.Name.Contains("Incubator") && (@object.heldObject.Value != null && @object.minutesUntilReady <= 0) && !__instance.isFull()) {
@@ -325,9 +328,11 @@ namespace MayonnaisePlusPlus
 						}
 					}
 					FarmAnimal farmAnimal = new FarmAnimal(type, Loader.HELPER.Multiplayer.GetNewID(),  Game1.player.uniqueMultiplayerID);
+					ModEntry.MOD_MONITOR.Log("Animal Created...", StardewModdingAPI.LogLevel.Trace);
 					while ((Game1.player.eventsSeen.Contains(3900074) || !type.Equals("Blue Chicken")) && !farmAnimal.type.Value.Equals(type)) {
 						farmAnimal = new FarmAnimal(type, farmAnimal.myID.Value, Game1.player.UniqueMultiplayerID);
 					}
+					ModEntry.MOD_MONITOR.Log("Animal Type Assured...", StardewModdingAPI.LogLevel.Trace);
 					farmAnimal.Name = name;
 					farmAnimal.displayName = name;
 					Building building = __instance.getBuilding();
@@ -336,7 +341,9 @@ namespace MayonnaisePlusPlus
 					farmAnimal.setRandomPosition(farmAnimal.home.indoors);
 					(building.indoors.Value as AnimalHouse).animals.Add(farmAnimal.myID, farmAnimal);
 					(building.indoors.Value as AnimalHouse).animalsThatLiveHere.Add(farmAnimal.myID);
+					ModEntry.MOD_MONITOR.Log("Animal Homed...", StardewModdingAPI.LogLevel.Trace);
 					@object.heldObject.Value = null;
+					ModEntry.MOD_MONITOR.Log("Incubator Cleared...", StardewModdingAPI.LogLevel.Trace);
 					@object.ParentSheetIndex = 101;
 					if (type == "Ostrich") {
 						@object.ParentSheetIndex = 254;
@@ -346,12 +353,13 @@ namespace MayonnaisePlusPlus
 				}
 			}
 			if (!flag && Game1.farmEvent != null && Game1.farmEvent is QuestionEvent) {
+				ModEntry.MOD_MONITOR.Log("In Question Event Block...", StardewModdingAPI.LogLevel.Trace);
 				var qe = Game1.farmEvent as QuestionEvent;
-				FarmAnimal farmAnimal = new FarmAnimal(qe.animal.type.Value, Loader.HELPER.Multiplayer.GetNewID(), Game1.player.uniqueMultiplayerID) {
-					Name = name,
-					displayName = name
-				};
+				var farmAnimal = new FarmAnimal(qe.animal.type.Value, Loader.HELPER.Multiplayer.GetNewID(), Game1.player.uniqueMultiplayerID);
+				farmAnimal.Name = name;
+				farmAnimal.displayName = name;
 				farmAnimal.parentId.Value = qe.animal.myID;
+				ModEntry.MOD_MONITOR.Log("Animal Named...", StardewModdingAPI.LogLevel.Trace);
 				Building building = __instance.getBuilding();
 				farmAnimal.home = building;
 				farmAnimal.homeLocation.Value = new Vector2(building.tileX, building.tileY);
@@ -359,8 +367,10 @@ namespace MayonnaisePlusPlus
 				farmAnimal.setRandomPosition(farmAnimal.home.indoors);
 				(building.indoors.Value as AnimalHouse).animals.Add(farmAnimal.myID, farmAnimal);
 				(building.indoors.Value as AnimalHouse).animalsThatLiveHere.Add(farmAnimal.myID);
+				ModEntry.MOD_MONITOR.Log("Animal Homed(2)...", StardewModdingAPI.LogLevel.Trace);
 			}
 			Game1.exitActiveMenu();
+			return false;
 		}
 	}
 }
