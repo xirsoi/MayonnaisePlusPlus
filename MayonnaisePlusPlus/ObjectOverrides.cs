@@ -286,7 +286,7 @@ namespace MayonnaisePlusPlus
 			return false;
 		}
 
-		public bool AnimalHouseAddNewHatchedAnimal(ref AnimalHouse __instance, string name) {
+		public static bool AnimalHouseAddNewHatchedAnimal(ref AnimalHouse __instance, string name) {
 			ModEntry.MOD_MONITOR.Log("Entering AddNewHatchedAnimal...", StardewModdingAPI.LogLevel.Trace);
 			bool flag = false;
 			foreach (SObject @object in __instance.objects.Values) {
