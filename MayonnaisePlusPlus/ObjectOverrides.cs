@@ -25,7 +25,6 @@ namespace MayonnaisePlusPlus
 		}
 
 		public static bool PerformObjectDropInAction(ref SObject __instance, ref Item dropInItem, ref bool probe, ref Farmer who, ref bool __result) {
-			ModEntry.MOD_MONITOR.Log("Entering PerformDropInAction...", StardewModdingAPI.LogLevel.Trace);
 			__result = false;
 			if (__instance.isTemporarilyInvisible || !(dropInItem is SObject))
 				return false;
@@ -36,9 +35,9 @@ namespace MayonnaisePlusPlus
 				return true;
 			if (dropInItem is Wallpaper
 				|| __instance.heldObject.Value != null && !__instance.name.Equals("Recycling Machine") && !__instance.name.Equals("Crystalarium")
-				|| object1 != null && object1.bigCraftable)
+				|| object1 != null && object1.bigCraftable.Value)
 				return false;
-			if (__instance.bigCraftable && !probe && object1 != null && __instance.heldObject.Value == null)
+			if (__instance.bigCraftable.Value && !probe && object1 != null && __instance.heldObject.Value == null)
 				__instance.scale.X = 5f;
 			if (probe && __instance.MinutesUntilReady > 0)
 				return false;
@@ -80,6 +79,16 @@ namespace MayonnaisePlusPlus
 						}
 						__result = true;
 						break;
+					case 289:
+						__instance.heldObject.Value = new SObject(Vector2.Zero, Loader.DATA["Ostrich Mayonnaise"], null, false, true, false, false);
+						if (!probe) {
+							__instance.MinutesUntilReady = 180;
+							who.currentLocation.playSound("Ship", NetAudio.SoundContext.Default);
+							__instance.heldObject.Value.Quality = CalculateQualityLevel(who, Math.Min(object1.Quality, 2), object1.Quality == 4);
+							__instance.heldObject.Value.Stack = 3;
+						}
+						__result = true;
+						break;
 					case 305:
 						__instance.heldObject.Value = new SObject(Vector2.Zero, 308, null, false, true, false, false) {
 							Quality = CalculateQualityLevel(who, object1.Quality)
@@ -93,6 +102,16 @@ namespace MayonnaisePlusPlus
 					case 442:
 						__instance.heldObject.Value = new SObject(Vector2.Zero, 307, null, false, true, false, false) {
 							Quality = CalculateQualityLevel(who, object1.Quality)
+						};
+						if (!probe) {
+							__instance.MinutesUntilReady = 180;
+							who.currentLocation.playSound("Ship", NetAudio.SoundContext.Default);
+						}
+						__result = true;
+						break;
+					case 928:
+						__instance.heldObject.Value = new SObject(Vector2.Zero, Loader.DATA["Golden Mayonnaise"], null, false, true, false, false) {
+							Quality = CalculateQualityLevel(who, Math.Min(object1.Quality, 2), object1.Quality == 4)
 						};
 						if (!probe) {
 							__instance.MinutesUntilReady = 180;
@@ -123,56 +142,61 @@ namespace MayonnaisePlusPlus
 						break;
 				}
 			} else if (__instance.name.Equals("Incubator")) {
-				if (__instance.heldObject.Value == null && (object1.Category == -5 || Utility.IsNormalObjectAtParentSheetIndex(object1, 107)) && object1.ParentSheetIndex != Loader.DATA["Dino Egg"]) {
+				if (__instance.heldObject.Value == null 
+					&& object1.ParentSheetIndex != 289 
+					&& object1.ParentSheetIndex != Loader.DATA["Dino Egg"] 
+					&& (object1.Category == -5 || Utility.IsNormalObjectAtParentSheetIndex((Item)object1, 107))) {
+					
 					__instance.heldObject.Value = new SObject(object1.ParentSheetIndex, 1, false, -1, 0);
+					
 					if (!probe) {
-						who.currentLocation.playSound("coin");
-						__instance.MinutesUntilReady = 9000 * object1.ParentSheetIndex == 107 ? 2 : 1;
+						who.currentLocation.playSound("coin", NetAudio.SoundContext.Default);
+						__instance.MinutesUntilReady = 9000 * (object1.ParentSheetIndex == 107 ? 2 : 1);
 						if (who.professions.Contains(2))
 							__instance.MinutesUntilReady /= 2;
 						if (object1.ParentSheetIndex == 180 || object1.ParentSheetIndex == 182 || object1.ParentSheetIndex == 305)
 							__instance.ParentSheetIndex += 2;
 						else
 							++__instance.ParentSheetIndex;
+						if (who != null && who.currentLocation != null && who.currentLocation is AnimalHouse)
+							(who.currentLocation as AnimalHouse).hasShownIncubatorBuildingFullMessage = false;
 					}
 					__result = true;
 				}
 			}
-
 			return !__result;
 		}
 
 		public static bool FarmAnimalDayUpdate(ref FarmAnimal __instance, GameLocation environtment) {
-			ModEntry.MOD_MONITOR.Log("Entering Day Update...", StardewModdingAPI.LogLevel.Trace);
 			if (__instance.daysOwned.Value < 0)
 				__instance.daysOwned.Value = __instance.age.Value;
 			__instance.StopAllActions();
 			__instance.health.Value = 3;
 			bool flag1 = false;
-			if (__instance.home != null && !(__instance.home.indoors.Value as AnimalHouse).animals.ContainsKey(__instance.myID) && environtment is Farm) {
-				if (!__instance.home.animalDoorOpen) {
+			if (__instance.home != null && !(__instance.home.indoors.Value as AnimalHouse).animals.ContainsKey(__instance.myID.Value) && environtment is Farm) {
+				if (!__instance.home.animalDoorOpen.Value) {
 					__instance.moodMessage.Value = 6;
 					flag1 = true;
 					__instance.happiness.Value /= 2;
 				} else {
-					(environtment as Farm).animals.Remove(__instance.myID);
-					(__instance.home.indoors.Value as AnimalHouse).animals.Add(__instance.myID, __instance);
+					(environtment as Farm).animals.Remove(__instance.myID.Value);
+					(__instance.home.indoors.Value as AnimalHouse).animals.Add(__instance.myID.Value, __instance);
 					if (Game1.timeOfDay > 1800 && __instance.controller == null)
 						__instance.happiness.Value /= 2;
-					environtment = __instance.home.indoors;
+					environtment = __instance.home.indoors.Value;
 					__instance.setRandomPosition(environtment);
 					return false;
 				}
 			}
 			++__instance.daysSinceLastLay.Value;
 			if (!__instance.wasPet.Value && !__instance.wasAutoPet.Value) {
-				__instance.friendshipTowardFarmer.Value = Math.Max(0, __instance.friendshipTowardFarmer - (10 - __instance.friendshipTowardFarmer / 200));
-				__instance.happiness.Value = (byte)Math.Max(0, __instance.happiness - __instance.happinessDrain * 5);
+				__instance.friendshipTowardFarmer.Value = Math.Max(0, __instance.friendshipTowardFarmer.Value - (10 - __instance.friendshipTowardFarmer.Value / 200));
+				__instance.happiness.Value = (byte)Math.Max(0, __instance.happiness.Value - __instance.happinessDrain.Value * 5);
 			}
 			__instance.wasPet.Value = false;
 			__instance.wasAutoPet.Value = false;
 			++__instance.daysOwned.Value;
-			if (__instance.fullness < 200 && environtment is AnimalHouse) {
+			if (__instance.fullness.Value < 200 && environtment is AnimalHouse) {
 				for (int index = environtment.objects.Count() - 1; index >= 0; --index) {
 					OverlaidDictionary.PairsCollection pairs = environtment.objects.Pairs;
 					if (pairs.ElementAt(index).Value.Name.Equals("Hay")) {
@@ -185,34 +209,34 @@ namespace MayonnaisePlusPlus
 					}
 				}
 			}
-			var random = new Random((int) (long) __instance.myID / 2 + (int) Game1.stats.DaysPlayed);
-			if (__instance.fullness > 200 || random.NextDouble() < (__instance.fullness - 30) / 170.0) {
+			var random = new Random((int) (long) __instance.myID.Value / 2 + (int) Game1.stats.DaysPlayed);
+			if (__instance.fullness.Value > 200 || random.NextDouble() < (__instance.fullness.Value - 30) / 170.0) {
 				++__instance.age.Value;
-				if (__instance.age == __instance.ageWhenMature) {
+				if (__instance.age.Value == __instance.ageWhenMature.Value) {
 					__instance.Sprite.LoadTexture("Animals\\" + __instance.type.Value);
 					if (__instance.type.Value.Contains("Sheep"))
-						__instance.currentProduce.Value = __instance.defaultProduceIndex;
+						__instance.currentProduce.Value = __instance.defaultProduceIndex.Value;
 					__instance.daysSinceLastLay.Value = 99;
 				}
-				__instance.happiness.Value = (byte)Math.Min(byte.MaxValue, __instance.happiness + __instance.happinessDrain * 2);
+				__instance.happiness.Value = (byte)Math.Min(byte.MaxValue, __instance.happiness.Value + __instance.happinessDrain.Value * 2);
 			}
 			if (__instance.fullness.Value < 200) {
-				__instance.happiness.Value = (byte)Math.Max(0, __instance.happiness - 100);
-				__instance.friendshipTowardFarmer.Value = Math.Max(0, __instance.friendshipTowardFarmer - 20);
+				__instance.happiness.Value = (byte)Math.Max(0, __instance.happiness.Value - 100);
+				__instance.friendshipTowardFarmer.Value = Math.Max(0, __instance.friendshipTowardFarmer.Value - 20);
 			}
-			bool flag2 =   __instance.daysSinceLastLay >=   __instance.daysToLay - (!__instance.type.Value.Equals("Sheep") || !Game1.getFarmer( __instance.ownerID).professions.Contains(3) ? 0 : 1) && random.NextDouble() <   __instance.fullness / 200.0 && random.NextDouble() <   __instance.happiness / 70.0;
+			bool flag2 =   __instance.daysSinceLastLay.Value >=   __instance.daysToLay.Value - (!__instance.type.Value.Equals("Sheep") || !Game1.getFarmer( __instance.ownerID.Value).professions.Contains(3) ? 0 : 1) && random.NextDouble() <   __instance.fullness.Value / 200.0 && random.NextDouble() <   __instance.happiness.Value / 70.0;
 			int pse;
-			if (!flag2 || __instance.age < __instance.ageWhenMature) {
+			if (!flag2 || __instance.age.Value < __instance.ageWhenMature.Value) {
 				pse = -1;
 			} else {
-				pse = __instance.defaultProduceIndex;
-				if (random.NextDouble() < __instance.happiness / 150.0) {
-					float num1 =  __instance.happiness >  200 ?   __instance.happiness * 1.5f : ( __instance.happiness <=  100 ?    __instance.happiness - 100 : 0.0f);
-					if (__instance.type.Value.Equals("Duck") && random.NextDouble() < (__instance.friendshipTowardFarmer + num1) / 4750.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.01) {
-						pse = __instance.deluxeProduceIndex;
-					} else if (__instance.type.Value.Equals("Rabbit") && random.NextDouble() < (__instance.friendshipTowardFarmer + num1) / 5000.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.02) {
-						pse = __instance.deluxeProduceIndex;
-					} else if (__instance.type.Value.Equals("Blue Chicken") && random.NextDouble() < (__instance.friendshipTowardFarmer + num1) / 4750.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.01) {
+				pse = __instance.defaultProduceIndex.Value;
+				if (random.NextDouble() < __instance.happiness.Value / 150.0) {
+					float num1 =  __instance.happiness.Value >  200 ?   __instance.happiness.Value * 1.5f : ( __instance.happiness.Value <=  100 ?    __instance.happiness.Value - 100 : 0.0f);
+					if (__instance.type.Value.Equals("Duck") && random.NextDouble() < (__instance.friendshipTowardFarmer.Value + num1) / 4750.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.01) {
+						pse = __instance.deluxeProduceIndex.Value;
+					} else if (__instance.type.Value.Equals("Rabbit") && random.NextDouble() < (__instance.friendshipTowardFarmer.Value + num1) / 5000.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.02) {
+						pse = __instance.deluxeProduceIndex.Value;
+					} else if (__instance.type.Value.Equals("Blue Chicken") && random.NextDouble() < (__instance.friendshipTowardFarmer.Value + num1) / 4750.0 + Game1.player.team.AverageDailyLuck() + Game1.player.team.AverageLuckLevel() * 0.01) {
 						pse = Loader.DATA["Blue Chicken Egg"];
 					}
 
@@ -229,10 +253,10 @@ namespace MayonnaisePlusPlus
 							++Game1.stats.DuckEggsLayed;
 							break;
 					}
-					if (random.NextDouble() < (__instance.friendshipTowardFarmer + num1) / 1200.0 && !__instance.type.Value.Equals("Duck") && !__instance.type.Value.Equals("Rabbit") && !__instance.type.Value.Equals("Blue Chicken") && __instance.deluxeProduceIndex != -1 && __instance.friendshipTowardFarmer >= 200)
-						pse = __instance.deluxeProduceIndex;
-					double num2 =    __instance.friendshipTowardFarmer / 1000.0 - (1.0 -    __instance.happiness / 225.0);
-					if (!__instance.isCoopDweller() && Game1.getFarmer(__instance.ownerID).professions.Contains(3) || __instance.isCoopDweller() && Game1.getFarmer(__instance.ownerID).professions.Contains(2))
+					if (random.NextDouble() < (__instance.friendshipTowardFarmer.Value + num1) / 1200.0 && !__instance.type.Value.Equals("Duck") && !__instance.type.Value.Equals("Rabbit") && !__instance.type.Value.Equals("Blue Chicken") && __instance.deluxeProduceIndex.Value != -1 && __instance.friendshipTowardFarmer.Value >= 200)
+						pse = __instance.deluxeProduceIndex.Value;
+					double num2 =    __instance.friendshipTowardFarmer.Value / 1000.0 - (1.0 -    __instance.happiness.Value / 225.0);
+					if (!__instance.isCoopDweller() && Game1.getFarmer(__instance.ownerID.Value).professions.Contains(3) || __instance.isCoopDweller() && Game1.getFarmer(__instance.ownerID.Value).professions.Contains(2))
 						num2 += 0.33;
 					if (num2 >= 0.95 && random.NextDouble() < num2 / 2.0)
 						__instance.produceQuality.Value = 4;
@@ -244,16 +268,16 @@ namespace MayonnaisePlusPlus
 						__instance.produceQuality.Value = 0;
 				}
 			}
-			if (__instance.harvestType == 1 & flag2) {
+			if (__instance.harvestType.Value == 1 & flag2) {
 				__instance.currentProduce.Value = pse;
 				pse = -1;
 			}
 			if (pse != -1 && __instance.home != null) {
 				bool flag3 = true;
 				foreach (SObject @object in __instance.home.indoors.Value.objects.Values) {
-					if (@object.bigCraftable && @object.ParentSheetIndex == 165 && @object.heldObject.Value != null) {
+					if (@object.bigCraftable.Value && @object.ParentSheetIndex == 165 && @object.heldObject.Value != null) {
 						if ((@object.heldObject.Value as Chest).addItem(new SObject(Vector2.Zero, pse, null, false, true, false, false) {
-							Quality = __instance.produceQuality
+							Quality = __instance.produceQuality.Value
 						}) == null) {
 							@object.showNextIndex.Value = true;
 							flag3 = false;
@@ -263,21 +287,21 @@ namespace MayonnaisePlusPlus
 				}
 				if (flag3 && !__instance.home.indoors.Value.Objects.ContainsKey(__instance.getTileLocation()))
 					__instance.home.indoors.Value.Objects.Add(__instance.getTileLocation(), new SObject(Vector2.Zero, pse, null, false, true, false, true) {
-						Quality = __instance.produceQuality
+						Quality = __instance.produceQuality.Value
 					});
 			}
 			if (!flag1) {
-				if (__instance.fullness < 30)
+				if (__instance.fullness.Value < 30)
 					__instance.moodMessage.Value = 4;
-				else if (__instance.happiness < 30)
+				else if (__instance.happiness.Value < 30)
 					__instance.moodMessage.Value = 3;
-				else if (__instance.happiness < 200)
+				else if (__instance.happiness.Value < 200)
 					__instance.moodMessage.Value = 2;
 				else
 					__instance.moodMessage.Value = 1;
 			}
 			if (Game1.timeOfDay < 1700)
-				__instance.fullness.Value = (byte)Math.Max(0, __instance.fullness.Value - __instance.fullnessDrain * (1700 - Game1.timeOfDay) / 100);
+				__instance.fullness.Value = (byte)Math.Max(0, __instance.fullness.Value - __instance.fullnessDrain.Value * (1700 - Game1.timeOfDay) / 100);
 			__instance.fullness.Value = 0;
 			if (Utility.isFestivalDay(Game1.dayOfMonth, Game1.currentSeason))
 				__instance.fullness.Value = 250;
@@ -287,10 +311,9 @@ namespace MayonnaisePlusPlus
 		}
 
 		public static bool AnimalHouseAddNewHatchedAnimal(ref AnimalHouse __instance, string name) {
-			ModEntry.MOD_MONITOR.Log("Entering AddNewHatchedAnimal...", StardewModdingAPI.LogLevel.Trace);
 			bool flag = false;
 			foreach (SObject @object in __instance.objects.Values) {
-				if (@object.bigCraftable && @object.Name.Contains("Incubator") && (@object.heldObject.Value != null && @object.minutesUntilReady <= 0) && !__instance.isFull()) {
+				if (@object.bigCraftable.Value && @object.Name.Contains("Incubator") && @object.heldObject.Value != null && @object.MinutesUntilReady <= 0 && !__instance.isFull()) {
 					flag = true;
 					string type = "??";
 					if (@object.heldObject.Value == null) {
@@ -327,23 +350,19 @@ namespace MayonnaisePlusPlus
 								break;
 						}
 					}
-					FarmAnimal farmAnimal = new FarmAnimal(type, Loader.HELPER.Multiplayer.GetNewID(),  Game1.player.uniqueMultiplayerID);
-					ModEntry.MOD_MONITOR.Log("Animal Created...", StardewModdingAPI.LogLevel.Trace);
+					FarmAnimal farmAnimal = new FarmAnimal(type, Loader.HELPER.Multiplayer.GetNewID(),  Game1.player.UniqueMultiplayerID);
 					while ((Game1.player.eventsSeen.Contains(3900074) || !type.Equals("Blue Chicken")) && !farmAnimal.type.Value.Equals(type)) {
 						farmAnimal = new FarmAnimal(type, farmAnimal.myID.Value, Game1.player.UniqueMultiplayerID);
 					}
-					ModEntry.MOD_MONITOR.Log("Animal Type Assured...", StardewModdingAPI.LogLevel.Trace);
 					farmAnimal.Name = name;
 					farmAnimal.displayName = name;
 					Building building = __instance.getBuilding();
 					farmAnimal.home = building;
-					farmAnimal.homeLocation.Value = new Vector2(building.tileX, building.tileY);
-					farmAnimal.setRandomPosition(farmAnimal.home.indoors);
-					(building.indoors.Value as AnimalHouse).animals.Add(farmAnimal.myID, farmAnimal);
-					(building.indoors.Value as AnimalHouse).animalsThatLiveHere.Add(farmAnimal.myID);
-					ModEntry.MOD_MONITOR.Log("Animal Homed...", StardewModdingAPI.LogLevel.Trace);
+					farmAnimal.homeLocation.Value = new Vector2(building.tileX.Value, building.tileY.Value);
+					farmAnimal.setRandomPosition(farmAnimal.home.indoors.Value);
+					(building.indoors.Value as AnimalHouse).animals.Add(farmAnimal.myID.Value, farmAnimal);
+					(building.indoors.Value as AnimalHouse).animalsThatLiveHere.Add(farmAnimal.myID.Value);
 					@object.heldObject.Value = null;
-					ModEntry.MOD_MONITOR.Log("Incubator Cleared...", StardewModdingAPI.LogLevel.Trace);
 					@object.ParentSheetIndex = 101;
 					if (type == "Ostrich") {
 						@object.ParentSheetIndex = 254;
@@ -353,21 +372,18 @@ namespace MayonnaisePlusPlus
 				}
 			}
 			if (!flag && Game1.farmEvent != null && Game1.farmEvent is QuestionEvent) {
-				ModEntry.MOD_MONITOR.Log("In Question Event Block...", StardewModdingAPI.LogLevel.Trace);
 				var qe = Game1.farmEvent as QuestionEvent;
-				var farmAnimal = new FarmAnimal(qe.animal.type.Value, Loader.HELPER.Multiplayer.GetNewID(), Game1.player.uniqueMultiplayerID);
+				var farmAnimal = new FarmAnimal(qe.animal.type.Value, Loader.HELPER.Multiplayer.GetNewID(), Game1.player.UniqueMultiplayerID);
 				farmAnimal.Name = name;
 				farmAnimal.displayName = name;
-				farmAnimal.parentId.Value = qe.animal.myID;
-				ModEntry.MOD_MONITOR.Log("Animal Named...", StardewModdingAPI.LogLevel.Trace);
+				farmAnimal.parentId.Value = qe.animal.myID.Value;
 				Building building = __instance.getBuilding();
 				farmAnimal.home = building;
-				farmAnimal.homeLocation.Value = new Vector2(building.tileX, building.tileY);
+				farmAnimal.homeLocation.Value = new Vector2(building.tileX.Value, building.tileY.Value);
 				qe.forceProceed = true;
-				farmAnimal.setRandomPosition(farmAnimal.home.indoors);
-				(building.indoors.Value as AnimalHouse).animals.Add(farmAnimal.myID, farmAnimal);
-				(building.indoors.Value as AnimalHouse).animalsThatLiveHere.Add(farmAnimal.myID);
-				ModEntry.MOD_MONITOR.Log("Animal Homed(2)...", StardewModdingAPI.LogLevel.Trace);
+				farmAnimal.setRandomPosition(farmAnimal.home.indoors.Value);
+				(building.indoors.Value as AnimalHouse).animals.Add(farmAnimal.myID.Value, farmAnimal);
+				(building.indoors.Value as AnimalHouse).animalsThatLiveHere.Add(farmAnimal.myID.Value);
 			}
 			Game1.exitActiveMenu();
 			return false;
