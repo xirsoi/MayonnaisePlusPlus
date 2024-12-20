@@ -1,5 +1,5 @@
 ﻿using System;
-using Harmony;
+using HarmonyLib;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using AnimalHouse = StardewValley.AnimalHouse;
@@ -28,17 +28,17 @@ namespace MayonnaisePlusPlus
 			if (_data != null) return;
 			_data = new Loader(Helper);
 
-			var harmony = HarmonyInstance.Create("Xirsoi.MayoMod");
+			var harmony = new Harmony("Xirsoi.MayoMod");
 
-			harmony.Patch(
+			_ = harmony.Patch(
 					original: AccessTools.Method(typeof(SObject), nameof(SObject.performObjectDropInAction)),
 					prefix: new HarmonyMethod(typeof(ObjectOverrides), nameof(ObjectOverrides.PerformObjectDropInAction))
 			);
-			harmony.Patch(
+			_ = harmony.Patch(
 				original: AccessTools.Method(typeof(FarmAnimal), nameof(FarmAnimal.dayUpdate)),
 				prefix: new HarmonyMethod(typeof(ObjectOverrides), nameof(ObjectOverrides.FarmAnimalDayUpdate))
 			);
-			harmony.Patch(
+			_ = harmony.Patch(
 				original: AccessTools.Method(typeof(AnimalHouse), nameof(AnimalHouse.addNewHatchedAnimal)),
 				prefix: new HarmonyMethod(typeof(ObjectOverrides), nameof(ObjectOverrides.AnimalHouseAddNewHatchedAnimal))
 			);
@@ -49,6 +49,8 @@ namespace MayonnaisePlusPlus
 				foreach (var item in _jsonAssets.GetAllObjectIds()) {
 					Loader.DATA.Add(item.Key, item.Value);
 				}
+
+
 			};
 		}
 	}

@@ -1,10 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Xml.Linq;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Buildings;
 using StardewValley.Events;
+using StardewValley.GameData.Machines;
+using StardewValley.Inventories;
 using StardewValley.Network;
 using StardewValley.Objects;
+using StardewValley.TokenizableStrings;
 using SObject = StardewValley.Object;
 
 namespace MayonnaisePlusPlus
@@ -29,9 +34,9 @@ namespace MayonnaisePlusPlus
 			if (__instance.isTemporarilyInvisible || !(dropInItem is SObject))
 				return false;
 			SObject object1 = dropInItem as SObject;
-			if (__instance.IsSprinkler() && __instance.heldObject.Value == null && (Utility.IsNormalObjectAtParentSheetIndex(dropInItem, 915) || Utility.IsNormalObjectAtParentSheetIndex(dropInItem, 913)))
+			if (__instance.IsSprinkler() && __instance.heldObject.Value == null && (Utility.IsNormalObjectAtParentSheetIndex(dropInItem, 915) || Utility.IsNormalObjectAtParentSheetIndex(dropInItem, "(O)913")))
 				return true;
-			if (object1 != null && object1.ParentSheetIndex == 872 && SObject.autoLoadChest == null)
+			if (__instance.heldObject.Value == null && (object1.QualifiedItemId == "(O)915" || object1.QualifiedItemId == "(O)913"))
 				return true;
 			if (dropInItem is Wallpaper
 				|| __instance.heldObject.Value != null && !__instance.name.Equals("Recycling Machine") && !__instance.name.Equals("Crystalarium")
@@ -303,11 +308,100 @@ namespace MayonnaisePlusPlus
 			if (Game1.timeOfDay < 1700)
 				__instance.fullness.Value = (byte)Math.Max(0, __instance.fullness.Value - __instance.fullnessDrain.Value * (1700 - Game1.timeOfDay) / 100);
 			__instance.fullness.Value = 0;
-			if (Utility.isFestivalDay(Game1.dayOfMonth, Game1.currentSeason))
+			if (Utility.isFestivalDay(Game1.dayOfMonth, Game1.season))
 				__instance.fullness.Value = 250;
 			__instance.reload(__instance.home);
 
 			return false;
+		}
+
+		/// <summary>Place an item in this machine.</summary>
+		/// <param name="machineData">The machine data to apply.</param>
+		/// <param name="inputItem">The item to place in the machine.</param>
+		/// <param name="probe">Whether to return whether the item would be placed successfully without making any changes.</param>
+		/// <param name="who">The player placing an item in the machine.</param>
+		/// <param name="showMessages">Whether to show UI messages for the player.</param>
+		/// <param name="playSounds">Whether to play sounds when the item is placed.</param>
+		public static bool ObjectPlaceInMachine(
+			ref SObject __instance,
+			MachineData machineData,
+			Item inputItem,
+			bool probe,
+			Farmer who,
+			bool showMessages,
+			bool playSounds,
+			ref bool __result)
+		{
+			if (machineData == null || inputItem == null || this.heldObject.Value != null && (!machineData.AllowLoadWhenFull || inputItem.QualifiedItemId == this.lastInputItem.Value?.QualifiedItemId))
+				return false;
+			MachineItemAdditionalConsumedItems failedRequirement;
+			if (!MachineDataUtility.HasAdditionalRequirements(Object.autoLoadFrom ?? (IInventory)who.Items, (IList<MachineItemAdditionalConsumedItems>)machineData.AdditionalConsumedItems, out failedRequirement))
+			{
+				if (showMessages && failedRequirement.InvalidCountMessage != null && !probe && Object.autoLoadFrom == null)
+				{
+					Object.CurrentParsedItemCount = failedRequirement.RequiredCount;
+					Game1.showRedMessage(TokenParser.ParseText(failedRequirement.InvalidCountMessage, customParser: new TokenParserDelegate(this.ParseItemCount)));
+					who.ignoreItemConsumptionThisFrame = true;
+				}
+				return false;
+			}
+			GameLocation location = this.Location;
+			MachineOutputRule rule;
+			MachineOutputTriggerRule triggerRule;
+			MachineOutputRule ruleIgnoringCount;
+			MachineOutputTriggerRule triggerIgnoringCount;
+			if (!MachineDataUtility.TryGetMachineOutputRule(this, machineData, MachineOutputTrigger.ItemPlacedInMachine, inputItem, who, location, out rule, out triggerRule, out ruleIgnoringCount, out triggerIgnoringCount))
+			{
+				if (showMessages && !probe && Object.autoLoadFrom == null)
+				{
+					if (ruleIgnoringCount != null)
+					{
+						string text = ruleIgnoringCount.InvalidCountMessage ?? machineData.InvalidCountMessage;
+						if (!string.IsNullOrWhiteSpace(text))
+						{
+							Object.CurrentParsedItemCount = triggerIgnoringCount.RequiredCount;
+							Game1.showRedMessage(TokenParser.ParseText(text, customParser: new TokenParserDelegate(this.ParseItemCount)));
+							who.ignoreItemConsumptionThisFrame = true;
+						}
+					}
+					else if (machineData.InvalidItemMessage != null && GameStateQuery.CheckConditions(machineData.InvalidItemMessageCondition, location, who, inputItem: (Item)who.ActiveObject))
+					{
+						Game1.showRedMessage(TokenParser.ParseText(machineData.InvalidItemMessage));
+						who.ignoreItemConsumptionThisFrame = true;
+					}
+				}
+				return false;
+			}
+			if (probe)
+				return true;
+			if (!this.OutputMachine(machineData, rule, inputItem, who, location, probe))
+				return false;
+			if (machineData.AdditionalConsumedItems != null)
+			{
+				IInventory inventory = Object.autoLoadFrom ?? (IInventory)who.Items;
+				foreach (MachineItemAdditionalConsumedItems additionalConsumedItem in machineData.AdditionalConsumedItems)
+					inventory.ReduceId(additionalConsumedItem.ItemId, additionalConsumedItem.RequiredCount);
+			}
+			if (triggerRule.RequiredCount > 0)
+				Object.ConsumeInventoryItem(who, inputItem, triggerRule.RequiredCount);
+			if (machineData.LoadEffects != null)
+			{
+				foreach (MachineEffects loadEffect in machineData.LoadEffects)
+				{
+					if (this.PlayMachineEffect(loadEffect, playSounds))
+					{
+						this._machineAnimation = loadEffect;
+						this._machineAnimationLoop = false;
+						this._machineAnimationIndex = 0;
+						this._machineAnimationFrame = -1;
+						this._machineAnimationInterval = 0;
+						break;
+					}
+				}
+			}
+			this.playCustomMachineLoadEffects();
+			MachineDataUtility.UpdateStats(machineData.StatsToIncrementWhenLoaded, inputItem, 1);
+			return true;
 		}
 
 		public static bool AnimalHouseAddNewHatchedAnimal(ref AnimalHouse __instance, string name) {
